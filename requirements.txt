@@ -1,0 +1,23 @@
+# Core
+pyyaml
+xmltodict
+requests
+
+# Interface
+rich
+click
+
+# Voice
+pygame
+gtts
+
+# AI
+# anthropic  # optional - if using Anthropic API directly
+
+# Wake word (optional - for future implementation)
+# pvporcupine
+# speechrecognition
+# pyaudio
+
+# Logging
+loguru
