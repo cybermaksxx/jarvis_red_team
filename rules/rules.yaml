@@ -1,0 +1,30 @@
+rules:
+  - name: "http_ffuf_dirs"
+    condition:
+      service: "http"
+    action: "run_ffuf_dirs"
+    priority: "HIGH"
+
+  - name: "https_ffuf_dirs"
+    condition:
+      service: "https"
+    action: "run_ffuf_dirs"
+    priority: "HIGH"
+
+  - name: "smb_smbmap"
+    condition:
+      service: "microsoft-ds"
+    action: "run_smbmap"
+    priority: "HIGH"
+
+  - name: "smb_netbios"
+    condition:
+      service: "netbios-ssn"
+    action: "run_smbmap"
+    priority: "HIGH"
+
+  - name: "ftp_anonymous"
+    condition:
+      service: "ftp"
+    action: "run_ftp_anon"
+    priority: "HIGH"
