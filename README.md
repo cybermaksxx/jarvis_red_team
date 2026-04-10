@@ -1,6 +1,6 @@
 # J.A.R.V.I.S — Pentesting Assistant
 
-> **Status: v1.0 complete — actively developed**
+> **Status: v1.0 complete — actively developed and fixing bugs**
 > The first version of this project is fully functional. Development will continue after a short break with new features, improvements, and additional tools.
 
 A local AI-assisted pentesting assistant for Kali Linux. It automates the repetitive parts of an engagement — host discovery, enumeration, tool execution, result parsing — and uses AI to analyze findings and suggest attack vectors.
