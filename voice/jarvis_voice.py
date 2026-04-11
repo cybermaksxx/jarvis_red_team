@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-import pygame
 import os
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+import warnings
+warnings.filterwarnings("ignore")
+import pygame
 
 def speak_intro():
     audio_path = os.path.join(os.path.dirname(__file__), "jarvis_cut.ogg")

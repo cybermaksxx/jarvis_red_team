@@ -15,7 +15,7 @@ from core.session import create_session
 from tools.executor import run_command
 from tools.parser.nmap_parser import parse_nmap
 from tools.parser.ffuf_parser import parse_ffuf
-from datastorage.database import init_db, save_port, clear_ports, save_directory, save_smb_share
+from datastorage.database import reset_db, save_port, save_directory, save_smb_share
 from rules.rules_engine import apply_rules
 
 console = Console()
@@ -60,10 +60,8 @@ def print_banner():
 
 
 def run_session(target: str):
-    init_db()
-    clear_ports()
+    reset_db()
     session_id = create_session(target)
-
     console.print(f"\n[bold cyan][*][/bold cyan] Session: [yellow]{session_id}[/yellow]")
     console.print(f"[bold cyan][*][/bold cyan] Target:  [yellow]{target}[/yellow]\n")
 

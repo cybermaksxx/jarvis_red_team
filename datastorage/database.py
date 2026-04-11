@@ -125,6 +125,14 @@ def clear_ports():
 
 
 
+def reset_db():
+    import os
+    if os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
+    init_db()
+
+
+
 def save_smb_share(data: dict, session_id: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
