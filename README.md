@@ -1,81 +1,93 @@
-# J.A.R.V.I.S — Pentesting Assistant
+# J.A.R.V.I.S — AI-Assisted Pentesting Assistant
 
-> **Status: v1.0 complete — actively developed**
-> The first version of this project is fully functional. Development will continue after a short break with new features, improvements, and additional tools.
-
-A local AI-assisted pentesting assistant for Kali Linux. It automates the repetitive parts of an engagement — host discovery, enumeration, tool execution, result parsing — and uses AI to analyze findings and suggest attack vectors.
-
-Built as a real learning project by a junior penetration tester. Not a script kiddie tool — every module was written and understood from scratch.
+> **v1.0 is functional and deployed. This project is under active development.**
+> The original repository lives on Codeberg where development happens continuously. This mirror receives periodic large commits. Significant improvements and new tools are coming.
 
 ---
 
-## How it works
+## What is this
+
+A local AI-assisted pentesting assistant built for Kali Linux. It automates the repetitive enumeration phase of an engagement — port scanning, web directory bruteforce, subdomain discovery, SMB enumeration, FTP checks — then uses an AI model to analyze the findings and suggest realistic initial access vectors based strictly on what was actually found.
+
+Built from scratch as a real learning project by a junior penetration tester. Every module was written and understood line by line. Not a wrapper around existing tools — a system that orchestrates them intelligently.
+
+---
+
+## How the pipeline works
 
 ```
-Target input
-    ↓
-nmap — full port scan
-    ↓
-Rule Engine — decides what to run next based on findings
-    ↓
-ffuf — directory bruteforce (HTTP targets)
-ffuf — vhost/subdomain scan (domain targets, auto-calibrated)
-smbmap — SMB share enumeration (ports 139/445)
-FTP — anonymous login check (port 21)
-    ↓
-AI Analysis — summarizes findings, suggests top attack vectors
-    ↓
-Rich terminal output with tables and panels
+python3 core/orchestrator.py
+          ↓
+    Enter target (IP or domain)
+          ↓
+    nmap — full port scan (-p- -sV -sC)
+          ↓
+    Rule Engine — reads findings, decides what runs next
+          ↓
+    ┌─────────────────────────────────────────┐
+    │  HTTP/HTTPS → ffuf directory bruteforce  │
+    │  Domain     → ffuf vhost scan            │
+    │               (auto-calibrated baseline) │
+    │  SMB 139/445 → smbmap share enum        │
+    │  FTP 21      → anonymous login check    │
+    └─────────────────────────────────────────┘
+          ↓
+    AI Analysis — digest sent to OpenRouter
+    Suggests attack vectors based only on real findings
+          ↓
+    Rich terminal output — tables, panels, spinners
+    Jarvis voice intro on startup
 ```
 
 ---
 
 ## Current tool stack
 
-| Tool | Purpose | Trigger |
+| Tool | What it does | When it runs |
 |---|---|---|
-| nmap | Full port scan with service detection | Always |
-| ffuf (dirs) | Web directory bruteforce | Port 80 / 443 |
-| ffuf (vhost) | Subdomain enumeration with baseline filter | Domain target |
-| smbmap | SMB share enumeration | Port 139 / 445 |
-| FTP check | Anonymous login via curl | Port 21 |
-| AI (OpenRouter) | Attack vector analysis | End of session |
+| nmap | Full port scan with version detection | Always, first |
+| ffuf (dirs) | Web directory bruteforce | Port 80 or 443 found |
+| ffuf (vhost) | Subdomain enumeration | Domain target only |
+| smbmap | SMB share enumeration | Port 139 or 445 found |
+| FTP anon check | Anonymous login via curl | Port 21 found |
+| AI (OpenRouter) | Attack vector analysis | After all tools finish |
 
 ---
 
 ## Project structure
 
 ```
-jarvis/
+jarvis_red_team/
 │
 ├── core/
-│   ├── orchestrator.py        # Central coordinator — runs the full pipeline
-│   ├── session.py             # Session management and folder creation
-│   └── task_queue.py          # Priority task queue
+│   ├── orchestrator.py       # Central brain — runs the full pipeline
+│   ├── session.py            # Creates session folders and IDs
+│   └── task_queue.py         # Priority queue for tool execution
 │
 ├── rules/
-│   ├── rule_engine.py         # Reads rules, matches findings, creates tasks
-│   └── rules.yaml             # Human-readable rules: "if http → run ffuf"
+│   ├── rule_engine.py        # Reads rules, matches findings, queues tasks
+│   └── rules.yaml            # "if port 80 open → run ffuf"
 │
 ├── tools/
-│   ├── executor.py            # Runs system commands, returns structured results
+│   ├── executor.py           # Runs shell commands, returns structured results
 │   └── parser/
-│       ├── nmap_parser.py
-│       ├── ffuf_parser.py
-│       └── smbmap_parser.py
+│       ├── nmap_parser.py    # XML → structured port/service data
+│       ├── ffuf_parser.py    # JSON → dirs and vhosts
+│       └── smbmap_parser.py  # Text → share list with permissions
 │
 ├── ai/
-│   ├── ai_module.py           # OpenRouter API wrapper
-│   └── digest_builder.py      # Compresses session data for AI input
+│   ├── ai_module.py          # OpenRouter API — sends digest, returns analysis
+│   └── digest_builder.py     # Compresses session findings for AI input
 │
 ├── datastorage/
-│   └── database.py            # SQLite — persistent storage for all findings
+│   └── database.py           # SQLite — stores all findings per session
+│                             # Wiped clean at the start of every new session
 │
 ├── voice/
-│   ├── jarvis_voice.py        # Plays Jarvis intro audio on startup
-│   └── jarvis_cut.ogg         # Audio file
+│   ├── jarvis_voice.py       # Plays intro audio on startup
+│   └── jarvis_cut.ogg        # Jarvis audio clip
 │
-└── sessions/                  # Auto-created — one folder per pentest session
+└── sessions/                 # Auto-created — one folder per scan session
 ```
 
 ---
@@ -83,13 +95,9 @@ jarvis/
 ## Installation
 
 ```bash
-git clone <repo>
+git clone https://codeberg.org/YOUR_USERNAME/jarvis_red_team
 cd jarvis_red_team
 pip install -r requirements.txt --break-system-packages
-```
-
-External tools required on Kali:
-```bash
 sudo apt install nmap ffuf smbmap curl alsa-utils -y
 ```
 
@@ -101,44 +109,65 @@ sudo apt install nmap ffuf smbmap curl alsa-utils -y
 python3 core/orchestrator.py
 ```
 
-Enter an IP address or domain name when prompted. The system handles everything else automatically.
+Enter an IP or domain when prompted. Everything else runs automatically.
 
-For domain targets, vhost scanning runs automatically with baseline size filtering to eliminate false positives.
+Domain targets get vhost scanning with automatic baseline size calibration to filter false positives.
 
 ---
 
 ## AI setup
 
-The AI module uses [OpenRouter](https://openrouter.ai) — free tier available. Add your API key to `ai/ai_module.py`:
+Uses [OpenRouter](https://openrouter.ai) — free tier is enough. Add your key to `ai/ai_module.py`:
 
 ```python
 OPENROUTER_API_KEY = "your_key_here"
 ```
 
-Recommended free models:
+Tested free models that work well:
+- `arcee-ai/trinity-large-preview:free`
 - `meta-llama/llama-3.1-8b-instruct:free`
 - `mistralai/mistral-7b-instruct:free`
 
 ---
 
-## What's coming next
+## What is coming next
 
-After a short break, development continues with:
+This is v1.0. The foundation works. A lot is still being built.
 
-- Wake word detection — say "wake up Jarvis" to start
-- enum4linux integration for deeper SMB/Samba enumeration
-- NFS enumeration (showmount)
-- Report generator — auto-generate markdown reports per session
-- Session resume — pick up a scan where it left off
-- Config file — move all settings out of code into config.yaml
-- Fix: filter findings by session_id to eliminate cross-session data pollution
+**Tools being added:**
+- `enum4linux` — deeper SMB/Samba enumeration (users, groups, password policies)
+- `showmount` — NFS share enumeration
+- `nikto` — web server vulnerability scanning
+- `whatweb` — web technology fingerprinting
+- SSH version CVE lookup — automatic check against known CVE database
+
+**System improvements:**
+- Wake word detection — say "wake up Jarvis" to launch
+- Config file (`config.yaml`) — move all settings out of code
+- Report generator — auto-generate markdown pentest reports per session
+- Session history — browse and compare previous scans
+- Better AI prompt tuning — more accurate, less hallucination
+- Port-based rules instead of service-name only — more reliable triggering
+
+**Known issues being fixed:**
+- AI occasionally hallucinates findings not present in the data (prompt improvements ongoing)
+- Rule engine triggers duplicate tasks for services on multiple ports
+
+---
+
+## Original repository
+
+Development happens on Codeberg:
+**https://codeberg.org/cybermaksx/jarvis_red_team**
+
+This GitHub mirror receives larger periodic commits. If you want to follow active development, watch the Codeberg repo.
 
 ---
 
 ## Built with
 
-Python 3 · nmap · ffuf · smbmap · SQLite · OpenRouter API · rich · pygame
+Python 3 · nmap · ffuf · smbmap · SQLite · OpenRouter API · rich · pygame · Kali Linux
 
 ---
 
-*Built on Kali Linux. Every line written and understood from scratch.*
+*Started as a learning project. Built line by line. Still being built.*
